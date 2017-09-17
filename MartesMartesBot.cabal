@@ -21,7 +21,6 @@ library
                      , wai
                      , warp
                      , servant-server >= 0.9 && < 0.11
-                     , servant-client >= 0.9 && < 0.11
                      , mtl
                      , http-client
                      , http-client-tls
