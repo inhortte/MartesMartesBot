@@ -12,10 +12,12 @@ module Lib
     ) where
 
 -- import Data.Aeson
+import Data.Aeson.Compat
+import Data.Aeson.Types
 -- import Network.Wai
 -- import Network.Wai.Handler.Warp
--- import Servant
--- import GHC.Generics hiding (from)
+import Servant
+import GHC.Generics hiding (from)
 import Control.Monad.Trans.Reader
 -- import Control.Monad.Except
 import Data.Text (Text)
@@ -27,6 +29,25 @@ import Network.HTTP.Client.TLS (tlsManagerSettings)
 import Web.Telegram.API.Bot
 -- import System.Environment
 -- import Data.Version (Version, makeVersion, showVersion)
+
+type MartenApi = "martens" :> Get '[JSON] [Marten]
+
+data Temperament = Calm | Nervous | Violent | Deranged deriving (Show, Eq)
+data Tipo = Americana | Foina | Martes | Pennanti | Flavigula deriving (Show, Eq)
+data Marten = Marten
+  { name :: String
+  , tipo :: Tipo
+  , age :: Int
+  , temperament :: Temperament
+  } deriving (Show, Eq, Generic)
+
+martens1 :: [Marten]
+martens1 =
+  [ Marten "Gretel" Americana 14 Deranged
+  , Marten "Henderson" Pennanti 3 Calm
+  , Marten "Bobbus" Flavigula 46 Nervous
+  , Marten "Christian" Foina 40 Violent
+  ]
 
 startApp :: IO ()
 startApp = do
