@@ -28,6 +28,7 @@ library
                      , telegram-api >= 0.6.3.0
                      , text
                      , transformers
+                     , transformers-compat
                      , template-haskell >= 2.8 && < 2.13
                      , ghc-prim >= 0.3 && < 0.6
                      , deepseq >= 1.3 && < 1.5
