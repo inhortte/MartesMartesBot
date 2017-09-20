@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import Gruel
+import Savant
 
 main :: IO ()
 main = startApp
