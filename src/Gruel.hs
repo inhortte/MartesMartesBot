@@ -85,20 +85,20 @@ botServer = returnVersion :<|> handleWebhook
           handleWebhook secret update = do
               Token token <- asks telegramToken
               if EQ == compare secret token
-                 then liftIO $ putStrLn $ "Handle update failed. " ++ show update
+                 then handleUpdate update
                  else throwError err403
 
-{-
 handleUpdate :: Update -> Bot ()
 handleUpdate update = do
     case update of
-        Update { message = Just Message
-          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
-        Update { message = Just msg } -> handleMessage msg
---      Update { ... } more cases
-        Update { pre_checkout_query = Just query } -> handlePreCheckout query
+--        Update { message = Just Message
+--          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
+--        Update { message = Just msg } -> handleMessage msg
+--        Update { ... } more cases
+--        Update { pre_checkout_query = Just query } -> handlePreCheckout query
         _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 
+{-
 helpMessage userId = sendMessageRequest userId $ T.unlines
     [ "/help - show this message"
     , "/books - show list of all books"
