@@ -20,6 +20,7 @@ import Servant
 import GHC.Generics hiding (from)
 import Control.Monad.Reader
 import Control.Monad.Except
+import Control.Monad (replicateM)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Network.HTTP.Client (newManager, Manager)
@@ -93,12 +94,26 @@ handleUpdate :: Update -> Bot ()
 handleUpdate update = do
     case update of
       Update { message = Just msg } -> handleMessage msg
+      Update { inline_query = Just iq } -> handleInlineQuery iq
       _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 --        Update { message = Just Message
 --          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
 --        Update { message = Just msg } -> handleMessage msg
 --        Update { ... } more cases
 --        Update { pre_checkout_query = Just query } -> handlePreCheckout query
+
+
+handleInlineQuery :: InlineQuery -> Bot ()
+handleInlineQuery iq = do
+  let query = query_query iq
+      iqId = query_id iq
+
+      onCommand "goat" = inlineAphorisms iqId 5
+      onCommand _ = return ()
+
+  liftIO $ putStrLn $ "Inline query -> " ++ (T.unpack query)
+
+  onCommand query
 
 handleMessage :: Message -> Bot ()
 handleMessage msg = do
@@ -135,6 +150,14 @@ sendAphorism chatId = do
   _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
   return ()
 
+inlineAphorisms :: Text -> Int -> Bot ()
+inlineAphorisms iqId n = do
+  BotConfig{..} <- ask
+  sentences <- liftIO $ replicateM n eligeSentenceFromBlog
+  let inlineQueryResults = map (\a -> InlineQueryResultArticle (T.pack "thurk") (Just $ T.pack a) Nothing Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) sentences
+      request = answerInlineQueryRequest iqId inlineQueryResults
+  _ <- ($) liftIO $ answerInlineQuery telegramToken request manager
+  return ()
 {-
 handleMessage :: Message -> Bot ()
 handleMessage msg = do

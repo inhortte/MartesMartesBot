@@ -19,12 +19,6 @@ blogDirs = ["/home/polaris/Dropbox/archiv/martenblog", "/home/polaris/Dropbox/ar
 blogRegex :: String
 blogRegex = "[A-Z][[:alpha:][:space:],;:\\\"']+[\\.]"
 
-randomPhrase :: [String] -> IO String
-randomPhrase pColl = do
-  thurk <- (getStdGen >>= (\gen -> return . head . map (pColl !!) . take 1 . randomRs (0, length pColl - 1) $ gen))
-  newStdGen
-  return thurk
-
 specifyPaths :: [FilePath] -> IO [FilePath]
 specifyPaths ds = do
   mapM (\d -> do
@@ -34,8 +28,14 @@ specifyPaths ds = do
 
 randomFromList :: [a] -> IO a
 randomFromList xs = do
-  item <- (getStdGen >>= (\gen -> return . (xs !!) . fst . randomR (0, length xs) $ gen))
-  newStdGen
+  item <- (getStdGen >>= (\gen -> return . (\idx ->
+                                              case idx of
+                                                idx' | idx' >= length xs -> xs !! (length xs - 1)
+                                                     | idx' < 0 -> xs !! 0
+                                                     | otherwise -> xs !! idx') . fst . randomR (0, (if length xs == 0
+                                                                                                     then 0
+                                                                                                     else length xs - 1)) $ gen))
+  _ <- newStdGen
   return item
 
 eliminateNewlines :: String -> String
