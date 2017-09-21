@@ -108,6 +108,7 @@ handleMessage msg = do
 
       onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
       onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId
+      onCommand _ = sendHelpMessage chatId
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
   liftIO $ putStrLn $ "Message text -> " ++ (T.unpack messageText)
