@@ -91,12 +91,20 @@ botServer = returnVersion :<|> handleWebhook
 handleUpdate :: Update -> Bot ()
 handleUpdate update = do
     case update of
+      Update { message = Just msg } -> claimToBeADeity
+      _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 --        Update { message = Just Message
 --          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
 --        Update { message = Just msg } -> handleMessage msg
 --        Update { ... } more cases
 --        Update { pre_checkout_query = Just query } -> handlePreCheckout query
-        _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
+
+claimToBeADeity :: Bot ()
+claimToBeADeity = do
+  BotConfig{..} <- ask
+  let sendDeityMessageRequest = sendMessageRequest (ChatId 399075235) "A deity is bathing"
+  liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
+  return ()
 
 {-
 helpMessage userId = sendMessageRequest userId $ T.unlines
