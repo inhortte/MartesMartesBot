@@ -159,9 +159,15 @@ inlineAphorisms iqId n = do
   
   let inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "aphorism" ++ show idx) (Just $ T.pack a) Nothing Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip sentences [1..n])
       request = answerInlineQueryRequest iqId inlineQueryResults
-  Right res <- ($) liftIO $ answerInlineQuery telegramToken request manager
-  _ <- liftIO $ putStrLn (show res)
-  return ()
+  res <- ($) liftIO $ answerInlineQuery telegramToken request manager
+  case res of
+    Left e -> do
+      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
+      return ()
+    Right r -> do
+      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
+      return ()
+
 {-
 handleMessage :: Message -> Bot ()
 handleMessage msg = do
