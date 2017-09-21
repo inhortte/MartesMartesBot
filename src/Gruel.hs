@@ -50,7 +50,7 @@ startApp :: IO ()
 startApp = do
   putStrLn "Martes Martes Bot is considering altering the universe"  
   manager' <- newManager tlsManagerSettings
-  let telegramToken' = "bot349544027:AAFCoyJUK3IZe3qxxSyxxk7TqcQpfvuUSGA"
+  let telegramToken' = "349544027:AAFCoyJUK3IZe3qxxSyxxk7TqcQpfvuUSGA"
       config = BotConfig
         { telegramToken = Token $ T.pack $ "bot" <> telegramToken'
         , manager = manager'
