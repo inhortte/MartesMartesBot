@@ -92,7 +92,7 @@ botServer = returnVersion :<|> handleWebhook
 handleUpdate :: Update -> Bot ()
 handleUpdate update = do
     case update of
-      Update { message = Just msg } -> claimToBeADeity msg
+      Update { message = Just msg } -> handleMessage msg
       _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 --        Update { message = Just Message
 --          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
@@ -100,24 +100,41 @@ handleUpdate update = do
 --        Update { ... } more cases
 --        Update { pre_checkout_query = Just query } -> handlePreCheckout query
 
-claimToBeADeity :: Message -> Bot ()
-claimToBeADeity msg = do
+handleMessage :: Message -> Bot ()
+handleMessage msg = do
+  BotConfig{..} <- ask
+  let chatId = ChatId $ chat_id $ chat msg
+      Just messageText = text msg
+
+      onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
+      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId
+      
+  liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
+  liftIO $ putStrLn $ "Message text -> " ++ (T.unpack messageText)
+  liftIO $ putStrLn $ "Chat id -> " ++ (show $ chat_id $ chat msg)
+
+  onCommand messageText
+
+helpMessage userId = sendMessageRequest userId $ T.unlines
+    [ "/help - show this message and subsequently die the flame death"
+    , "/goat - get a random phrase"
+    ]
+
+sendHelpMessage :: ChatId -> Bot ()
+sendHelpMessage chatId = do
+  BotConfig{..} <- ask
+  liftIO $ sendMessage telegramToken (helpMessage chatId) manager >> return ()
+  return ()  
+
+sendAphorism :: ChatId -> Bot ()
+sendAphorism chatId = do
   BotConfig{..} <- ask
   sentence <- liftIO eligeSentenceFromBlog
-  let chatId = ChatId $ chat_id $ chat msg
-      sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
-  _ <- ($) liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
-  _ <- ($) liftIO $ putStrLn $ "Chat id -> " ++ (show $ chat_id $ chat msg)
+  let sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
   _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
   return ()
 
 {-
-helpMessage userId = sendMessageRequest userId $ T.unlines
-    [ "/help - show this message"
-    , "/books - show list of all books"
-    , "/find title - find book by title"
-    ]
-
 handleMessage :: Message -> Bot ()
 handleMessage msg = do
     BotConfig{..} <- ask
