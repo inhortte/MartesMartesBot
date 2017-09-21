@@ -154,6 +154,9 @@ inlineAphorisms :: Text -> Int -> Bot ()
 inlineAphorisms iqId n = do
   BotConfig{..} <- ask
   sentences <- liftIO $ replicateM n eligeSentenceFromBlog
+
+  _ <- liftIO $ putStrLn (show sentences)
+  
   let inlineQueryResults = map (\a -> InlineQueryResultArticle (T.pack "thurk") (Just $ T.pack a) Nothing Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) sentences
       request = answerInlineQueryRequest iqId inlineQueryResults
   _ <- ($) liftIO $ answerInlineQuery telegramToken request manager
