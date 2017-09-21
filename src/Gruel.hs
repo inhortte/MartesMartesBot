@@ -12,6 +12,7 @@ module Gruel
     , app
     ) where
 
+import Aphorisms (eligeSentenceFromBlog)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -102,7 +103,9 @@ handleUpdate update = do
 claimToBeADeity :: Message -> Bot ()
 claimToBeADeity msg = do
   BotConfig{..} <- ask
-  let sendDeityMessageRequest = sendMessageRequest (ChatId 399075235) "A deity is bathing"
+  sentence <- liftIO eligeSentenceFromBlog
+  let chatId = ChatId $ chat_id $ chat msg
+      sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
   _ <- ($) liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
   _ <- ($) liftIO $ putStrLn $ "Chat id -> " ++ (show $ chat_id $ chat msg)
   _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
