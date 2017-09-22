@@ -29,10 +29,9 @@ import Data.Maybe
 import Data.Monoid
 import Web.Telegram.API.Bot
 import System.Environment
--- import qualified Paths_orly_bookstore_bot as P
 import Data.Version (showVersion, makeVersion)
+import Text.Regex.Posix
 
--- We needed those language extensions to make it as simple as that
 data Version = Version
   { version :: Text
   } deriving (Show, Generic)
@@ -105,15 +104,45 @@ handleUpdate update = do
 
 handleInlineQuery :: InlineQuery -> Bot ()
 handleInlineQuery iq = do
-  let query = query_query iq
+  let cmdArgs = parseInlineQuery $ query_query iq
       iqId = query_id iq
 
-      onCommand "goat" = inlineAphorisms iqId 5
-      onCommand _ = return ()
+      
+      onCommand = case cmdArgs of
+                    Just (cmd,args) | cmd == "goat" -> inlineAphorisms iqId args
+                                    | otherwise -> return ()
+                    Nothing -> return ()
 
-  liftIO $ putStrLn $ "Inline query -> " ++ (T.unpack query)
+  liftIO $ putStrLn $ "Inline query -> " ++ (show iq)
 
-  onCommand query
+  onCommand
+
+parseInlineQuery :: Text -> Maybe (String,[String])
+parseInlineQuery textQuery = do
+  let stringQuery = (T.unpack textQuery) :: String
+      re = "\\w+" :: String
+      argsList = getAllTextMatches $ (stringQuery =~ re :: AllTextMatches [] String)
+  if null argsList then Nothing else Just (head argsList, tail argsList)
+                                  
+
+inlineAphorisms :: Text -> [String] -> Bot ()
+inlineAphorisms iqId args = do
+  BotConfig{..} <- ask
+  let n = if null args then 5 else read $ head args
+  sentences <- liftIO $ replicateM n eligeSentenceFromBlog
+
+  _ <- liftIO $ putStrLn (show sentences)
+  
+  let inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "aphorism" ++ show idx) (Just $ T.pack $ "aphorism #" ++ show idx) (Just $ InputTextMessageContent (T.pack a) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip sentences [1..n])
+      request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
+  res <- ($) liftIO $ answerInlineQuery telegramToken request manager
+  case res of
+    Left e -> do
+      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
+      return ()
+    Right r -> do
+      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
+      return ()
 
 handleMessage :: Message -> Bot ()
 handleMessage msg = do
@@ -150,23 +179,6 @@ sendAphorism chatId = do
   _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
   return ()
 
-inlineAphorisms :: Text -> Int -> Bot ()
-inlineAphorisms iqId n = do
-  BotConfig{..} <- ask
-  sentences <- liftIO $ replicateM n eligeSentenceFromBlog
-
-  _ <- liftIO $ putStrLn (show sentences)
-  
-  let inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "aphorism" ++ show idx) (Just $ T.pack $ "aphorism #" ++ show idx) (Just $ InputTextMessageContent (T.pack a) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip sentences [1..n])
-      request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
-  res <- ($) liftIO $ answerInlineQuery telegramToken request manager
-  case res of
-    Left e -> do
-      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
-      return ()
-    Right r -> do
-      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
-      return ()
 
 {-
 handleMessage :: Message -> Bot ()
