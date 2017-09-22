@@ -13,6 +13,7 @@ module Gruel
     ) where
 
 import Aphorisms (eligeSentenceFromBlog)
+import Burgeon (hashAphorisms)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -109,7 +110,8 @@ handleInlineQuery iq = do
 
       
       onCommand = case cmdArgs of
-                    Just (cmd,args) | cmd == "goat" -> inlineAphorisms iqId args
+                    Just (cmd,args) | cmd == "goat" -> inlineAphorisms iqId args False
+                                    | cmd == "koza" -> inlineAphorisms iqId args True
                                     | otherwise -> return ()
                     Nothing -> return ()
 
@@ -125,17 +127,18 @@ parseInlineQuery textQuery = do
   if null argsList then Nothing else Just (head argsList, tail argsList)
                                   
 
-inlineAphorisms :: Text -> [String] -> Bot ()
-inlineAphorisms iqId args = do
+inlineAphorisms :: Text -> [String] -> Bool -> Bot ()
+inlineAphorisms iqId args askToClassify = do
   BotConfig{..} <- ask
   let n = if null args then 5 else read $ head args
   sentences <- liftIO $ replicateM n eligeSentenceFromBlog
 
   _ <- liftIO $ putStrLn (show sentences)
+  _ <- liftIO $ hashAphorisms sentences
   
   let classifyButton = InlineKeyboardButton (T.pack "classify aphorism") Nothing (Just "classify") Nothing Nothing Nothing Nothing
       keyboard = InlineKeyboardMarkup [ [classifyButton] ]
-      inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "aphorism" ++ show idx) (Just $ T.pack $ "aphorism #" ++ show idx) (Just $ InputTextMessageContent (T.pack a) Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip sentences [1..n])
+      inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "aphorism" ++ show idx) (Just $ T.pack $ "aphorism #" ++ show idx) (Just $ InputTextMessageContent (T.pack a) Nothing Nothing) (if askToClassify then (Just keyboard) else Nothing) Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip sentences [1..n])
       request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
   res <- ($) liftIO $ answerInlineQuery telegramToken request manager
   case res of
