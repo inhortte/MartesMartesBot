@@ -42,6 +42,9 @@ library
                      , cryptohash
                      , bytestring
                      , hedis
+                     , dates
+                     , split
+                     , text-regex-replace
   default-language:    Haskell2010
 
 executable MartesMartesBot-exe
