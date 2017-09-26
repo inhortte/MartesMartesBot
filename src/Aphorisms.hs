@@ -10,6 +10,8 @@ module Aphorisms
   , qbRegexDate
   , stringToQuote
   , eligeQuote
+  , eligeQuoteByHuman
+  , filterQuotesByHuman
   ) where
 
 import Control.Monad (mapM, forM)
@@ -77,6 +79,9 @@ quoteBookToLines = readFile quotebookFilename >>= (\contents -> return $ lines c
 quoteBook :: IO [Quote]
 quoteBook = quoteBookToQuotesIO
 
+filterQuotesByHuman :: String -> IO [Quote]
+filterQuotesByHuman s = quoteBook >>= (\quotes -> return $ filter (\(Quote _ hs _) -> any (\h -> (T.unpack . T.toLower . T.pack $ h) =~ (T.unpack . T.toLower . T.pack $ s) :: Bool) hs) quotes)
+
 specifyPaths :: [FilePath] -> IO [FilePath]
 specifyPaths ds = do
   mapM (\d -> do
@@ -117,5 +122,5 @@ eligeQuote :: IO String
 eligeQuote = do
   quoteBook >>= randomFromList >>= (\q -> return $ quoteToString q)
   
-  
-  
+eligeQuoteByHuman :: String -> IO String
+eligeQuoteByHuman s = filterQuotesByHuman s >>= randomFromList >>= (\q -> return $ quoteToString q)

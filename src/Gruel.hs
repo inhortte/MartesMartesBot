@@ -12,7 +12,7 @@ module Gruel
     , app
     ) where
 
-import Aphorisms (eligeSentenceFromBlog, eligeQuote)
+import Aphorisms (eligeSentenceFromBlog, eligeQuote, eligeQuoteByHuman)
 import Burgeon (hashAphorisms)
 import Data.Aeson
 import Network.Wai
@@ -112,7 +112,8 @@ handleInlineQuery iq = do
       onCommand = case cmdArgs of
                     Just (cmd,args) | cmd == "goat" -> inlineAphorisms iqId args False
                                     | cmd == "koza" -> inlineAphorisms iqId args True
-                                    | cmd == "qb" || cmd == "quote" || cmd == "quotebook" -> inlineQuote iqId args
+                                    | cmd == "qb" || cmd == "quote" || cmd == "quotebook" -> inlineQuote eligeQuote iqId args
+                                    | cmd == "qsearch" -> inlineQuoteSearch eligeQuoteByHuman iqId args
                                     | otherwise -> return ()
                     Nothing -> return ()
 
@@ -150,11 +151,14 @@ inlineAphorisms iqId args askToClassify = do
       _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
       return ()
 
-inlineQuote :: Text -> [String] -> Bot ()
-inlineQuote iqId args = do
+inlineQuoteSearch :: (String -> IO String) -> Text -> [String] -> Bot ()
+inlineQuoteSearch qFn iqId args = if null args then return () else inlineQuote (qFn $ head args) iqId (tail args)
+
+inlineQuote :: IO String -> Text -> [String] -> Bot ()
+inlineQuote qFn iqId args = do
   BotConfig{..} <- ask
   let n = if null args then 3 else (read . head) args
-  quotes <- liftIO $ replicateM n eligeQuote
+  quotes <- liftIO $ replicateM n qFn
   let inlineQueryResults = map (\(a,idx) -> InlineQueryResultArticle (T.pack $ "quote" ++ show idx) (Just $ T.pack $ "quote #" ++ show idx) (Just $ InputTextMessageContent (T.pack a) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack a) Nothing Nothing Nothing) (zip quotes [1..n])
       request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
   res <- ($) liftIO $ answerInlineQuery telegramToken request manager
