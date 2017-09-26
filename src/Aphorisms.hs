@@ -21,8 +21,10 @@ import System.IO
 import Text.Regex.Posix
 import Data.Dates
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import Data.Text.ICU.Replace (replaceAll)
 import Data.List.Split (splitOn)
+import Formatting (format, (%.), left, int)
 
 type Human = String
 data Quote = Quote [String] [Human] DateTime deriving (Show)
@@ -109,7 +111,7 @@ eligeSentenceFromBlog = specifyPaths blogDirs >>= randomFromList >>= sentenceFro
 quoteToString :: Quote -> String
 quoteToString (Quote qs hs d) = (foldr scruntch "" (zip qs hs)) ++ fecha d
   where scruntch (quote, human) gunge = quote ++ " " ++ "-" ++ human ++ "... " ++ gunge
-        fecha d = (show $ year d) ++ "-" ++ (show $ month d) ++ "-" ++ (show $ day d)
+        fecha d = TL.unpack $ (format (left 4 '0' %. int) $ year d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ month d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ day d)
                                          
 eligeQuote :: IO String
 eligeQuote = do
