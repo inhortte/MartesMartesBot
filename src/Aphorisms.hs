@@ -29,7 +29,18 @@ import Data.List.Split (splitOn)
 import Formatting (format, (%.), left, int)
 
 type Human = String
-data Quote = Quote [String] [Human] DateTime deriving (Show)
+data Quote = Quote [String] [Human] DateTime
+instance Show Quote where
+  show (Quote qs hs d) = (foldr scruntch "" (zip qs hs)) ++ fecha d
+    where scruntch (quote, human) gunge = quote ++ " \n" ++ "-" ++ human ++ "...\n " ++ gunge
+          fecha d = TL.unpack $ (format (left 4 '0' %. int) $ year d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ month d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ day d)
+
+{-
+quoteToString :: Quote -> String
+quoteToString (Quote qs hs d) = (foldr scruntch "" (zip qs hs)) ++ fecha d
+  where scruntch (quote, human) gunge = quote ++ " " ++ "-" ++ human ++ "... " ++ gunge
+        fecha d = TL.unpack $ (format (left 4 '0' %. int) $ year d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ month d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ day d)
+-}
 
 blogDirs :: [FilePath]
 blogDirs = ["/home/polaris/Dropbox/archiv/martenblog", "/home/polaris/Dropbox/archiv/christian"]
@@ -113,14 +124,9 @@ sentenceFromFile fp = readFile fp >>= (\contents -> return $ isolateSentences . 
 eligeSentenceFromBlog :: IO String
 eligeSentenceFromBlog = specifyPaths blogDirs >>= randomFromList >>= sentenceFromFile
 
-quoteToString :: Quote -> String
-quoteToString (Quote qs hs d) = (foldr scruntch "" (zip qs hs)) ++ fecha d
-  where scruntch (quote, human) gunge = quote ++ " " ++ "-" ++ human ++ "... " ++ gunge
-        fecha d = TL.unpack $ (format (left 4 '0' %. int) $ year d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ month d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ day d)
-                                         
 eligeQuote :: IO String
 eligeQuote = do
-  quoteBook >>= randomFromList >>= (\q -> return $ quoteToString q)
+  quoteBook >>= randomFromList >>= (\q -> return $ show q)
   
 eligeQuoteByHuman :: String -> IO String
-eligeQuoteByHuman s = filterQuotesByHuman s >>= randomFromList >>= (\q -> return $ quoteToString q)
+eligeQuoteByHuman s = filterQuotesByHuman s >>= randomFromList >>= (\q -> return $ show q)
