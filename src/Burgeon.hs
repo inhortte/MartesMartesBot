@@ -1,12 +1,18 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Burgeon
   ( hashAphorisms
   ) where
 
 import qualified Crypto.Hash.SHA256 as C
 import qualified Data.ByteString.Char8 as B
+import Database.Redis
 
 redisPrefix :: String
-redisPrefix = "martes"
+redisPrefix = "martesBot"
+
+-- conn :: Connection
+
 
 hashAphorisms :: [String] -> IO ()
 hashAphorisms as = do

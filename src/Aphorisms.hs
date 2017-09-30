@@ -36,7 +36,7 @@ instance Show Quote where
           fecha d = TL.unpack $ (format (left 4 '0' %. int) $ year d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ month d) `TL.append` (TL.pack "-") `TL.append` (format (left 2 '0' %. int) $ day d)
 
 blogDirs :: [FilePath]
-blogDirs = ["/home/polaris/Dropbox/archiv/martenblog", "/home/polaris/Dropbox/archiv/christian"]
+blogDirs = ["/home/polaris/Dropbox/archiv/martenblog", "/home/polaris/Dropbox/archiv/christian", "/home/polaris/Dropbox/listopad"]
 blogRegex :: String
 blogRegex = "[A-Z][[:alpha:][:space:],;:\\\"']+[\\.\\?\\!]"
 
