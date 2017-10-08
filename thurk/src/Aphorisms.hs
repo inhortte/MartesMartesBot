@@ -12,8 +12,10 @@ module Aphorisms
   , eligeQuote
   , eligeQuoteByHuman
   , filterQuotesByHuman
+  , randomFromList
   ) where
 
+import Utils (randomFromList)
 import Control.Monad (mapM, forM)
 import System.Random (randomR, randomRs, getStdGen, newStdGen)
 import Data.Int
@@ -92,18 +94,6 @@ specifyPaths ds = do
            files <- listDirectory d
            return $ map (d </>) files)
     ds >>= (\fps -> return $ concat fps)
-
-randomFromList :: [a] -> IO a
-randomFromList xs = do
-  item <- (getStdGen >>= (\gen -> return . (\idx ->
-                                              case idx of
-                                                idx' | idx' >= length xs -> xs !! (length xs - 1)
-                                                     | idx' < 0 -> xs !! 0
-                                                     | otherwise -> xs !! idx') . fst . randomR (0, (if length xs == 0
-                                                                                                     then 0
-                                                                                                     else length xs - 1)) $ gen))
-  _ <- newStdGen
-  return item
 
 eliminateNewlines :: String -> String
 eliminateNewlines = map (\c -> if c == '\n' then ' ' else c) . unlines . drop 5 . lines

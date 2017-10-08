@@ -13,7 +13,7 @@ module Gruel
     ) where
 
 import Aphorisms (eligeSentenceFromBlog, eligeQuote, eligeQuoteByHuman)
-import Burgeon (hashAphorisms)
+import Burgeon (hashUm)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -135,8 +135,8 @@ inlineAphorisms iqId args askToClassify = do
   let n = if null args then 5 else read $ head args
   sentences <- liftIO $ replicateM n eligeSentenceFromBlog
 
-  _ <- liftIO $ putStrLn (show sentences)
-  _ <- liftIO $ hashAphorisms sentences
+  -- _ <- liftIO $ putStrLn (show sentences)
+  -- _ <- liftIO $ hashUm sentences
   
   let classifyButton = InlineKeyboardButton (T.pack "classify aphorism") Nothing (Just "classify") Nothing Nothing Nothing Nothing
       keyboard = InlineKeyboardMarkup [ [classifyButton] ]
@@ -206,58 +206,3 @@ sendAphorism chatId = do
   return ()
 
 
-{-
-handleMessage :: Message -> Bot ()
-handleMessage msg = do
-    BotConfig{..} <- ask
-    let chatId = ChatId $ fromIntegral $ user_id $ fromJust $ from msg
-        messageText = text msg
-        sendHelpMessage = sendMessageM (helpMessage chatId) >> return ()
-        sendInvoices books = mapM_ sendInvoiceM $ map (buildBuyBookInvoice chatId paymentsToken) books
-        byTitle title book = T.isInfixOf title $ fst book -- book title contains title
-        onCommand (Just (T.stripPrefix "/help" -> Just _)) = sendHelpMessage
-        onCommand (Just (T.stripPrefix "/books" -> Just _)) = sendInvoices allBooks
-        onCommand (Just (T.stripPrefix "/find " -> Just title)) = sendInvoices $ filter (byTitle title) allBooks
-        onCommand _ = sendHelpMessage
-    liftIO $ runClient (onCommand messageText) telegramToken manager
-    return ()
-
-allBooks :: [(Text, (Text, Text, Int))]
-allBooks =
-  [ ("Copying and Pasting from Stack Overflow",
-        ("http://i.imgur.com/fawRchq.jpg", "Cutting corners to meet arbitrary management deadlines", 7000))
-  , ("Googling the Error Message",
-        ("http://i.imgur.com/fhgzVEt.jpg", "The internet will make those bad words go away", 4500))
-  , ("Whiteboard Interviews",
-        ("http://i.imgur.com/oM9yCym.png", "Putting the candidate through the same bullshit you went through", 3200))
-  , ("\"Temporary\" Workaround",
-        ("http://i.imgur.com/IQBhKkT.jpg", "Who are you kidding?", 4200))
-  ]
-
-buildBuyBookInvoice (ChatId chatId) token (title, (image, description, price)) =
-    (sendInvoiceRequest chatId title description payload token link code prices)
-        { snd_inv_photo_url = Just image }
-        where code = CurrencyCode "USD"
-              payload = "book_payment_payload"
-              link = "deep_link"
-              prices = [ LabeledPrice title price
-                       , LabeledPrice "Donation to a kitten hospital" 300
-                       , LabeledPrice "Discount for donation" (-300) ]
-
-handlePreCheckout :: PreCheckoutQuery -> Bot ()
-handlePreCheckout query = do
-    BotConfig{..} <- ask
-    let chatId = ChatId $ fromIntegral $ user_id $ pre_che_from query
-        queryId = pre_che_id query
-        okRequest = AnswerPreCheckoutQueryRequest queryId True Nothing
-    liftIO $ runClient (answerPreCheckoutQueryM okRequest) telegramToken manager
-    return ()
-
-handleSuccessfulPayment :: SuccessfulPayment -> Bot ()
-handleSuccessfulPayment payment = do
-    let totalAmount = T.pack $ show $ (suc_pmnt_total_amount payment) `div` 100
-        CurrencyCode code = suc_pmnt_currency payment
-    liftIO $ print $ "We have earned " <> code <> totalAmount <> ". Shipping book to the client!"
-    return ()
-
--}

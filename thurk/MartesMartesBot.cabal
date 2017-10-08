@@ -19,6 +19,7 @@ library
                      , Savant
                      , Aphorisms
                      , Burgeon
+                     , Utils
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , aeson-compat
@@ -39,7 +40,7 @@ library
                      , filepath
                      , directory
                      , regex-posix
-                     , cryptohash
+                     , cryptonite
                      , bytestring
                      , hedis
                      , dates

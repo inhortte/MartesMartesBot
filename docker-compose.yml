@@ -1,0 +1,17 @@
+version: '2'
+services:
+  nlp-service:
+    image: martes-martes-bot
+    container_name: martes-martes-bot
+    depends_on:
+      - redis
+    volumes:
+      - ./thurk:/opt/app
+    ports:
+      - "9091"
+  redis:
+    image: redis
+    container_name: martes-martes-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - ./redis-data:/data

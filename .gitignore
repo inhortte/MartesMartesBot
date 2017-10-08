@@ -1,4 +1,7 @@
 *.hi
 *.o
 *~
-.stack-work
+thurk/.stack-work
+thurk/dist
+redis-data/**
+
