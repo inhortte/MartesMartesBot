@@ -13,7 +13,7 @@ module Gruel
     ) where
 
 import Aphorisms (eligeSentenceFromBlog, eligeQuote, eligeQuoteByHuman)
-import Burgeon (hashUm)
+import Burgeon (hashUm, insultTemplates)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -114,11 +114,10 @@ handleInlineQuery iq = do
                                     | cmd == "koza" -> inlineAphorisms iqId args True
                                     | cmd == "qb" || cmd == "quote" || cmd == "quotebook" -> inlineQuote eligeQuote iqId args
                                     | cmd == "qsearch" -> inlineQuoteSearch eligeQuoteByHuman iqId args
+                                    | cmd == "its" || cmd == "itemplates" || cmd == "insulttemplates" -> dishITemplates iqId
                                     | otherwise -> return ()
                     Nothing -> return ()
-
   liftIO $ putStrLn $ "Inline query -> " ++ (show iq)
-
   onCommand
 
 parseInlineQuery :: Text -> Maybe (String,[String])
@@ -127,7 +126,22 @@ parseInlineQuery textQuery = do
       re = "\\w+" :: String
       argsList = getAllTextMatches $ (stringQuery =~ re :: AllTextMatches [] String)
   if null argsList then Nothing else Just (head argsList, tail argsList)
-                                  
+
+dishITemplates :: Text -> Bot ()
+dishITemplates iqId = do
+  BotConfig{..} <- ask
+  tNames <- liftIO insultTemplates
+  let tButtons = map (\t -> InlineKeyboardButton (T.pack t) Nothing (Just "iTemplateSelected") Nothing Nothing Nothing Nothing) tNames
+      inlineQueryResults = map (\(t,idx) -> InlineQueryResultArticle (T.pack $ "template " ++ show idx) (Just $ T.pack $ "Template " ++ show idx) (Just $ InputTextMessageContent (T.pack t) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack t) Nothing Nothing Nothing) (zip tNames [1..length tNames - 1])
+      request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
+  res <- ($) liftIO $ answerInlineQuery telegramToken request manager
+  case res of
+    Left e -> do
+      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
+      return ()
+    Right r -> do
+      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
+      return ()
 
 inlineAphorisms :: Text -> [String] -> Bool -> Bot ()
 inlineAphorisms iqId args askToClassify = do
