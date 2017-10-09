@@ -133,7 +133,11 @@ dishITemplates iqId args = do
   tNames <- liftIO insultTemplates
   _ <- liftIO $ putStrLn $ show tNames
   let tNames' = if null tNames then ["Nothing"] else tNames
-      inlineQueryResults = map (\(t,idx) -> InlineQueryResultArticle (T.pack $ "template" ++ show idx) (Just $ T.pack $ "Template " ++ show idx) (Just $ InputTextMessageContent (T.pack t) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack t) Nothing Nothing Nothing) (zip tNames' [1..length tNames'])
+      buttons = map (\tName ->
+                       InlineKeyboardButton (T.pack tName) Nothing (Just $ "template#" ++ tName) Nothing Nothing Nothing Nothing)
+                tNames'
+      keyboard = InlineKeyboardMarkup [buttons]
+      inlineQueryResults = [ InlineQueryResultArticle (T.pack $ "templateresults") (Just $ T.pack $ "Click this, dead one") (Just $ InputTextMessageContent (T.pack "You are dead") Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack "You have died") Nothing Nothing Nothing ]
       request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
   res <- ($) liftIO $ answerInlineQuery telegramToken request manager
   _ <- liftIO $ putStrLn $ show res

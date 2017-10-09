@@ -5,6 +5,7 @@ module Burgeon
   , evalInsult
   , templ1
   , insultTemplates
+  , insultTemplate
   ) where
 
 import Aphorisms (randomFromList)
@@ -14,6 +15,7 @@ import qualified Data.ByteString.Char8 as B
 import Database.Redis
 import Control.Monad.IO.Class (liftIO)
 import Data.List (intersperse)
+import Text.Regex.Posix
 
 redisPrefix :: String
 redisPrefix = "martesBot"
@@ -26,7 +28,12 @@ type TemplateTitle = String
 data WordGroup = WordGroup GroupTitle [String] deriving (Show)
 data TemplatePart a = Part a | Parts [TemplatePart a] deriving (Show)
 data InsultTemplate a b = InsultTemplate TemplateTitle (TemplatePart WordGroup) deriving (Show)
+data PartType = WG | TEMPL | BOOM
 
+partType :: String -> (PartType, String)
+partType s | (s :: String) =~ ("^WG" :: String) :: Bool = (WG, drop 2 s)
+           | (s :: String) =~ ("^TEMPL" :: String) :: Bool = (TEMPL, drop 5 s)
+           | otherwise = (BOOM, s)
 
 initialWordGroups :: [WordGroup]
 initialWordGroups = [WordGroup "ImpVerb" ["kill", "depilate", "ogle"], WordGroup "Article" ["the", "a"], WordGroup "AnimalsPlural" ["mustelids", "humans", "snails"]]
@@ -64,4 +71,32 @@ insultTemplates = do
   runRedis conn $ do
     Right titles <- smembers (toKey ["templates"])
     liftIO $ return $ map B.unpack titles
+
+wordGroup :: GroupTitle -> IO WordGroup
+wordGroup gt = do
+  conn <- connect martesConnectInfo
+  runRedis conn $ do
+    Right ws <- smembers (toKey ["wordgroup", gt])
+    liftIO $ return $ WordGroup gt $ map B.unpack ws
+
+templatePart :: TemplateTitle -> IO (TemplatePart WordGroup)
+templatePart tTitle = do
+  conn <- connect martesConnectInfo
+  runRedis conn $ do
+    Right parts <- zrange (toKey ["template", tTitle]) 0 (-1)
+    parts <- liftIO $ forM parts $ \part ->
+      case partType (B.unpack part) of
+        (WG, wgName) -> do
+          wg <- wordGroup wgName
+          return $ Part wg
+        (TEMPL, tName) -> do
+          tp <- templatePart tName
+          return tp
+        _ -> error $ "misnamed wordgroup or template: " ++ (B.unpack part)
+    liftIO $ return $ Parts parts
+    
+insultTemplate :: TemplateTitle -> IO (InsultTemplate TemplateTitle (TemplatePart WordGroup))
+insultTemplate tTitle = do
+  tp <- templatePart tTitle
+  return $ InsultTemplate tTitle tp
     
