@@ -132,7 +132,8 @@ dishITemplates iqId args = do
   BotConfig{..} <- ask
   tNames <- liftIO insultTemplates
   _ <- liftIO $ putStrLn $ show tNames
-  let inlineQueryResults = map (\(t,idx) -> InlineQueryResultArticle (T.pack $ "template" ++ show idx) (Just $ T.pack $ "Template " ++ show idx) (Just $ InputTextMessageContent (T.pack t) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack t) Nothing Nothing Nothing) (zip tNames [1..length tNames - 1])
+  let tNames' = if null tNames then ["Nothing"] else tNames
+      inlineQueryResults = map (\(t,idx) -> InlineQueryResultArticle (T.pack $ "template" ++ show idx) (Just $ T.pack $ "Template " ++ show idx) (Just $ InputTextMessageContent (T.pack t) Nothing Nothing) Nothing Nothing Nothing (Just $ T.pack t) Nothing Nothing Nothing) (zip tNames' [1..length tNames'])
       request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
   res <- ($) liftIO $ answerInlineQuery telegramToken request manager
   _ <- liftIO $ putStrLn $ show res
