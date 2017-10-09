@@ -32,6 +32,7 @@ import Web.Telegram.API.Bot
 import System.Environment
 import Data.Version (showVersion, makeVersion)
 import Text.Regex.Posix
+import Data.Char (isNumber)
 
 data Version = Version
   { version :: Text
@@ -98,11 +99,6 @@ handleUpdate update = do
       Update { inline_query = Just iq } -> handleInlineQuery iq
 --      Update { callback_query = Just cbq } -> handleCallbackQuery cbq
       _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
---        Update { message = Just Message
---          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
---        Update { message = Just msg } -> handleMessage msg
---        Update { ... } more cases
---        Update { pre_checkout_query = Just query } -> handlePreCheckout query
 
 -- Anything that comes in on the channel, baby
 handleChannelPost :: Message -> Bot ()
@@ -112,8 +108,8 @@ handleChannelPost msg = do
       Just messageText = text msg
 
       onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
-      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId
-      onCommand _ = sendHelpMessage chatId
+      onCommand (T.stripPrefix "/goat" -> Just args) = sendAphorism chatId args
+      onCommand _ = return ()
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
   liftIO $ putStrLn $ "Message text -> " ++ (T.unpack messageText)
@@ -132,13 +128,24 @@ sendHelpMessage chatId = do
   liftIO $ sendMessage telegramToken (helpMessage chatId) manager >> return ()
   return ()  
 
-sendAphorism :: ChatId -> Bot ()
-sendAphorism chatId = do
+sendAphorism :: ChatId -> Text -> Bot ()
+sendAphorism chatId args = do
   BotConfig{..} <- ask
-  sentence <- liftIO eligeSentenceFromBlog
-  let sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
-  _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
+  let cantidad' = getHeadNumber $ parseChatCommandArgs args
+      cantidad = case cantidad' of
+        Just c -> c
+        Nothing -> 1
+  sentences <- liftIO $ replicateM cantidad eligeSentenceFromBlog
+  let requests = map (\s -> sendMessageRequest chatId (T.pack s)) sentences
+  _ <- ($) liftIO $ forM_ requests $ (\r -> sendMessage telegramToken r manager)
   return ()
+
+parseChatCommandArgs :: Text -> [String]
+parseChatCommandArgs text = getAllTextMatches $ ((T.unpack text) :: String) =~ ("\\w+" :: String) :: [String]
+getHeadNumber :: [String] -> Maybe Int
+getHeadNumber args = do
+  arg <- if null args then Nothing else Just $ head args
+  if all isNumber arg then Just $ read arg else Nothing
 
 {-
 handleCallbackQuery :: CallbackQuery -> Bot ()
@@ -168,6 +175,7 @@ parseInlineQuery textQuery = do
       re = "\\w+" :: String
       argsList = getAllTextMatches $ (stringQuery =~ re :: AllTextMatches [] String)
   if null argsList then Nothing else Just (head argsList, tail argsList)
+  
 
 dishITemplates :: Text -> [String] -> Bot ()
 dishITemplates iqId args = do
@@ -241,7 +249,7 @@ handleMessage msg = do
       Just messageText = text msg
 
       onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
-      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId
+      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId ""
       onCommand _ = sendHelpMessage chatId
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
