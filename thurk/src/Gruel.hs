@@ -94,7 +94,9 @@ handleUpdate :: Update -> Bot ()
 handleUpdate update = do
     case update of
       Update { message = Just msg } -> handleMessage msg
+      Update { channel_post = Just msg } -> handleChannelPost msg
       Update { inline_query = Just iq } -> handleInlineQuery iq
+--      Update { callback_query = Just cbq } -> handleCallbackQuery cbq
       _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 --        Update { message = Just Message
 --          { successful_payment = Just payment } } -> handleSuccessfulPayment payment
@@ -102,6 +104,47 @@ handleUpdate update = do
 --        Update { ... } more cases
 --        Update { pre_checkout_query = Just query } -> handlePreCheckout query
 
+-- Anything that comes in on the channel, baby
+handleChannelPost :: Message -> Bot ()
+handleChannelPost msg = do
+  BotConfig{..} <- ask
+  let chatId = ChatId $ chat_id $ chat msg
+      Just messageText = text msg
+
+      onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
+      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId
+      onCommand _ = sendHelpMessage chatId
+      
+  liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
+  liftIO $ putStrLn $ "Message text -> " ++ (T.unpack messageText)
+  liftIO $ putStrLn $ "Chat id -> " ++ (show $ chat_id $ chat msg)
+
+  onCommand messageText
+
+helpMessage userId = sendMessageRequest userId $ T.unlines
+    [ "/help - show this message and subsequently die the flame death"
+    , "/goat - get a random phrase"
+    ]
+
+sendHelpMessage :: ChatId -> Bot ()
+sendHelpMessage chatId = do
+  BotConfig{..} <- ask
+  liftIO $ sendMessage telegramToken (helpMessage chatId) manager >> return ()
+  return ()  
+
+sendAphorism :: ChatId -> Bot ()
+sendAphorism chatId = do
+  BotConfig{..} <- ask
+  sentence <- liftIO eligeSentenceFromBlog
+  let sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
+  _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
+  return ()
+
+{-
+handleCallbackQuery :: CallbackQuery -> Bot ()
+handleCallbackQuery cbq = do
+  let Just imId = cq_inline_message_id cbq
+-}    
 
 handleInlineQuery :: InlineQuery -> Bot ()
 handleInlineQuery iq = do
@@ -190,6 +233,7 @@ inlineQuote qFn iqId args = do
       _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
       return ()
 
+-- Anything that comes in on the channel, baby
 handleMessage :: Message -> Bot ()
 handleMessage msg = do
   BotConfig{..} <- ask
@@ -206,6 +250,7 @@ handleMessage msg = do
 
   onCommand messageText
 
+{-
 helpMessage userId = sendMessageRequest userId $ T.unlines
     [ "/help - show this message and subsequently die the flame death"
     , "/goat - get a random phrase"
@@ -224,5 +269,4 @@ sendAphorism chatId = do
   let sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
   _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
   return ()
-
-
+-}
