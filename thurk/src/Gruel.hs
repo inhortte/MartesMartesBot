@@ -108,16 +108,15 @@ handleInlineQuery iq = do
   let cmdArgs = parseInlineQuery $ query_query iq
       iqId = query_id iq
 
-      
       onCommand = case cmdArgs of
                     Just (cmd,args) | cmd == "goat" -> inlineAphorisms iqId args False
                                     | cmd == "koza" -> inlineAphorisms iqId args True
                                     | cmd == "qb" || cmd == "quote" || cmd == "quotebook" -> inlineQuote eligeQuote iqId args
                                     | cmd == "qsearch" -> inlineQuoteSearch eligeQuoteByHuman iqId args
-                                    | cmd == "its" || cmd == "itemplates" || cmd == "insulttemplates" -> dishITemplates iqId
+                                    | cmd == "its" || cmd == "itemplates" || cmd == "insulttemplates" -> dishITemplates iqId args
                                     | otherwise -> return ()
                     Nothing -> return ()
-  liftIO $ putStrLn $ "Inline query -> " ++ (show iq)
+  -- liftIO $ putStrLn $ "Inline query -> " ++ (show iq)
   onCommand
 
 parseInlineQuery :: Text -> Maybe (String,[String])
@@ -127,8 +126,9 @@ parseInlineQuery textQuery = do
       argsList = getAllTextMatches $ (stringQuery =~ re :: AllTextMatches [] String)
   if null argsList then Nothing else Just (head argsList, tail argsList)
 
-dishITemplates :: Text -> Bot ()
-dishITemplates iqId = do
+dishITemplates :: Text -> [String] -> Bot ()
+dishITemplates iqId args = do
+  _ <- liftIO $ putStrLn $ "args: " ++ show args
   BotConfig{..} <- ask
   tNames <- liftIO insultTemplates
   _ <- liftIO $ putStrLn $ show tNames
