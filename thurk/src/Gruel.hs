@@ -134,7 +134,7 @@ dishITemplates iqId args = do
   _ <- liftIO $ putStrLn $ show tNames
   let tNames' = if null tNames then ["Nothing"] else tNames
       buttons = map (\tName ->
-                       InlineKeyboardButton (T.pack tName) Nothing (Just $ "template#" ++ tName) Nothing Nothing Nothing Nothing)
+                       InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing)
                 tNames'
       keyboard = InlineKeyboardMarkup [buttons]
       inlineQueryResults = [ InlineQueryResultArticle (T.pack $ "templateresults") (Just $ T.pack $ "Click this, dead one") (Just $ InputTextMessageContent (T.pack "You are dead") Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack "You have died") Nothing Nothing Nothing ]
