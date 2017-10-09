@@ -67,21 +67,21 @@ evalTemplate (Parts tps) = do
 
 insultTemplates :: IO [TemplateTitle]
 insultTemplates = do
-  conn <- connect martesConnectInfo
+  conn <- checkedConnect martesConnectInfo
   runRedis conn $ do
     Right titles <- smembers (toKey ["templates"])
     liftIO $ return $ map B.unpack titles
 
 wordGroup :: GroupTitle -> IO WordGroup
 wordGroup gt = do
-  conn <- connect martesConnectInfo
+  conn <- checkedConnect martesConnectInfo
   runRedis conn $ do
     Right ws <- smembers (toKey ["wordgroup", gt])
     liftIO $ return $ WordGroup gt $ map B.unpack ws
 
 templatePart :: TemplateTitle -> IO (TemplatePart WordGroup)
 templatePart tTitle = do
-  conn <- connect martesConnectInfo
+  conn <- checkedConnect martesConnectInfo
   runRedis conn $ do
     Right parts <- zrange (toKey ["template", tTitle]) 0 (-1)
     parts <- liftIO $ forM parts $ \part ->
