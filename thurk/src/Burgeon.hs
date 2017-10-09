@@ -21,7 +21,7 @@ redisPrefix :: String
 redisPrefix = "martesBot"
 
 martesConnectInfo :: ConnectInfo
-martesConnectInfo = defaultConnectInfo { connectDatabase = 7 }
+martesConnectInfo = defaultConnectInfo { connectHost = "127.0.0.1", connectDatabase = 7 }
 
 type GroupTitle = String
 type TemplateTitle = String
