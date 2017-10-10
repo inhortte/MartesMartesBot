@@ -33,6 +33,7 @@ import System.Environment
 import Data.Version (showVersion, makeVersion)
 import Text.Regex.Posix
 import Data.Char (isNumber)
+import Data.List.Split (chunksOf)
 
 data Version = Version
   { version :: Text
@@ -109,6 +110,8 @@ handleChannelPost msg = do
 
       onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
       onCommand (T.stripPrefix "/goat" -> Just args) = sendAphorism chatId args
+      onCommand (T.stripPrefix "/its" -> Just args) = dishITemplates chatId args
+      onCommand (T.stripPrefix "/itemplates" -> Just args) = dishITemplates chatId args
       onCommand _ = return ()
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
@@ -119,8 +122,33 @@ handleChannelPost msg = do
 
 helpMessage userId = sendMessageRequest userId $ T.unlines
     [ "/help - show this message and subsequently die the flame death"
-    , "/goat - get a random phrase"
+    , "/goat - get a random aphorism taken from the GOAT LORD itself"
+    , "/its || /itemplates - show insult templates"
     ]
+
+dishITemplates :: ChatId -> Text -> Bot ()
+dishITemplates iqId args = do
+  BotConfig{..} <- ask
+  let args' = parseChatCommandArgs args
+  _ <- liftIO $ putStrLn $ "args: " ++ show args'
+  tNames <- liftIO insultTemplates
+  _ <- liftIO $ putStrLn $ show tNames
+  let tNames' = if null tNames then ["Nothing"] else tNames
+      -- buttons = chunksOf 3 $ map (\tName ->
+      --                               InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing) tNames'
+      buttons = chunksOf 3 $ map (\tName -> KeyboardButton (T.pack tName) Nothing Nothing) tNames'
+      -- keyboard = InlineKeyboardMarkup buttons
+      keyboard = ReplyKeyboardMarkup buttons Nothing (Just True) Nothing
+      request = SendMessageRequest iqId (T.pack "Click this, dead one") Nothing Nothing Nothing Nothing (Just keyboard)
+  res <- ($) liftIO $ sendMessage telegramToken request manager
+  _ <- liftIO $ putStrLn $ show res
+  case res of
+    Left e -> do
+      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
+      return ()
+    Right r -> do
+      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
+      return ()
 
 sendHelpMessage :: ChatId -> Bot ()
 sendHelpMessage chatId = do
@@ -163,7 +191,7 @@ handleInlineQuery iq = do
                                     | cmd == "koza" -> inlineAphorisms iqId args True
                                     | cmd == "qb" || cmd == "quote" || cmd == "quotebook" -> inlineQuote eligeQuote iqId args
                                     | cmd == "qsearch" -> inlineQuoteSearch eligeQuoteByHuman iqId args
-                                    | cmd == "its" || cmd == "itemplates" || cmd == "insulttemplates" -> dishITemplates iqId args
+--                                    | cmd == "its" || cmd == "itemplates" || cmd == "insulttemplates" -> dishITemplates iqId args
                                     | otherwise -> return ()
                     Nothing -> return ()
   -- liftIO $ putStrLn $ "Inline query -> " ++ (show iq)
@@ -176,29 +204,6 @@ parseInlineQuery textQuery = do
       argsList = getAllTextMatches $ (stringQuery =~ re :: AllTextMatches [] String)
   if null argsList then Nothing else Just (head argsList, tail argsList)
   
-
-dishITemplates :: Text -> [String] -> Bot ()
-dishITemplates iqId args = do
-  _ <- liftIO $ putStrLn $ "args: " ++ show args
-  BotConfig{..} <- ask
-  tNames <- liftIO insultTemplates
-  _ <- liftIO $ putStrLn $ show tNames
-  let tNames' = if null tNames then ["Nothing"] else tNames
-      buttons = map (\tName ->
-                       InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing)
-                tNames'
-      keyboard = InlineKeyboardMarkup [buttons]
-      inlineQueryResults = [ InlineQueryResultArticle (T.pack $ "templateresults") (Just $ T.pack $ "Click this, dead one") (Just $ InputTextMessageContent (T.pack "You are dead") Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack "You have died") Nothing Nothing Nothing ]
-      request = AnswerInlineQueryRequest iqId inlineQueryResults (Just 1) Nothing Nothing Nothing Nothing
-  res <- ($) liftIO $ answerInlineQuery telegramToken request manager
-  _ <- liftIO $ putStrLn $ show res
-  case res of
-    Left e -> do
-      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
-      return ()
-    Right r -> do
-      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
-      return ()
 
 inlineAphorisms :: Text -> [String] -> Bool -> Bot ()
 inlineAphorisms iqId args askToClassify = do
