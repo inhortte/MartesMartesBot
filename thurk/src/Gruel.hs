@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 module Gruel
     ( startApp
@@ -134,12 +135,14 @@ dishITemplates iqId args = do
   tNames <- liftIO insultTemplates
   _ <- liftIO $ putStrLn $ show tNames
   let tNames' = if null tNames then ["Nothing"] else tNames
-      -- buttons = chunksOf 3 $ map (\tName ->
-      --                               InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing) tNames'
-      buttons = chunksOf 3 $ map (\tName -> KeyboardButton (T.pack tName) Nothing Nothing) tNames'
-      -- keyboard = InlineKeyboardMarkup buttons
-      keyboard = ReplyKeyboardMarkup buttons Nothing (Just True) Nothing
+      buttons = chunksOf 3 $ map (\tName ->
+                                    InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing) tNames'
+      -- buttons = chunksOf 3 $ map (\tName -> KeyboardButton (T.pack tName) Nothing Nothing) tNames'
+      keyboard = ReplyInlineKeyboardMarkup buttons
+      -- keyboard = ReplyKeyboardMarkup buttons Nothing (Just True) Nothing
+      -- inlineQueryResults = [ InlineQueryResultArticle (T.pack $ "bung") (Just $ T.pack $ "Title?") (Just $ InputTextMessageContent (T.pack "content") Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack "description") Nothing Nothing Nothing ]
       request = SendMessageRequest iqId (T.pack "Click this, dead one") Nothing Nothing Nothing Nothing (Just keyboard)
+      
   res <- ($) liftIO $ sendMessage telegramToken request manager
   _ <- liftIO $ putStrLn $ show res
   case res of
@@ -254,7 +257,9 @@ handleMessage msg = do
       Just messageText = text msg
 
       onCommand (T.stripPrefix "/help" -> Just _) = sendHelpMessage chatId
-      onCommand (T.stripPrefix "/goat" -> Just _) = sendAphorism chatId ""
+      onCommand (T.stripPrefix "/goat" -> Just args) = sendAphorism chatId args
+      onCommand (T.stripPrefix "/its" -> Just args) = dishITemplates chatId args
+      onCommand (T.stripPrefix "/itemplates" -> Just args) = dishITemplates chatId args
       onCommand _ = sendHelpMessage chatId
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
@@ -263,23 +268,3 @@ handleMessage msg = do
 
   onCommand messageText
 
-{-
-helpMessage userId = sendMessageRequest userId $ T.unlines
-    [ "/help - show this message and subsequently die the flame death"
-    , "/goat - get a random phrase"
-    ]
-
-sendHelpMessage :: ChatId -> Bot ()
-sendHelpMessage chatId = do
-  BotConfig{..} <- ask
-  liftIO $ sendMessage telegramToken (helpMessage chatId) manager >> return ()
-  return ()  
-
-sendAphorism :: ChatId -> Bot ()
-sendAphorism chatId = do
-  BotConfig{..} <- ask
-  sentence <- liftIO eligeSentenceFromBlog
-  let sendDeityMessageRequest = sendMessageRequest chatId (T.pack sentence)
-  _ <- ($) liftIO $ sendMessage telegramToken sendDeityMessageRequest manager
-  return ()
--}
