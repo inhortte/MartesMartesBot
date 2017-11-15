@@ -14,7 +14,7 @@ module Gruel
     ) where
 
 import Aphorisms (eligeSentenceFromBlog, eligeQuote, eligeQuoteByHuman)
-import Burgeon (hashUm, insultTemplates)
+import Burgeon (hashUm, insultTemplates, insultTemplate, evalInsult)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -99,7 +99,7 @@ handleUpdate update = do
       Update { message = Just msg } -> handleMessage msg
       Update { channel_post = Just msg } -> handleChannelPost msg
       Update { inline_query = Just iq } -> handleInlineQuery iq
---      Update { callback_query = Just cbq } -> handleCallbackQuery cbq
+      Update { callback_query = Just cbq } -> handleCallbackQuery cbq
       _ -> liftIO $ putStrLn $ "Handle update failed. " ++ show update
 
 -- Anything that comes in on the channel, baby
@@ -178,11 +178,23 @@ getHeadNumber args = do
   arg <- if null args then Nothing else Just $ head args
   if all isNumber arg then Just $ read arg else Nothing
 
-{-
 handleCallbackQuery :: CallbackQuery -> Bot ()
 handleCallbackQuery cbq = do
-  let Just imId = cq_inline_message_id cbq
--}    
+  BotConfig{..} <- ask
+  let cqId = cq_id cbq
+      Just cqMessage = cq_message cbq
+      chatId = ChatId $ chat_id $ chat cqMessage
+      tCommand = cq_data cbq
+
+  case tCommand of
+    Just s -> do
+      let tName = T.drop 9 s
+      insult <- liftIO $ insultTemplate (T.unpack tName) >>= evalInsult
+      let request = SendMessageRequest chatId (T.pack insult) Nothing Nothing Nothing Nothing Nothing
+      res <- ($) liftIO $ sendMessage telegramToken request manager
+      return ()
+    Nothing -> return ()
+  
 
 handleInlineQuery :: InlineQuery -> Bot ()
 handleInlineQuery iq = do
