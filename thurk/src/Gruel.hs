@@ -114,6 +114,8 @@ handleChannelPost msg = do
       onCommand (T.stripPrefix "/goat" -> Just args) = sendAphorism chatId args
       onCommand (T.stripPrefix "/its" -> Just args) = dishITemplates chatId args
       onCommand (T.stripPrefix "/itemplates" -> Just args) = dishITemplates chatId args
+      onCommand (T.stripPrefix "/wgs" -> Just args) = dishWordGroups chatId args
+      onCommand (T.stripPrefix "/wordgroups" -> Just args) = dishWordGroups chatId args
       onCommand _ = return ()
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
