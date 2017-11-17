@@ -6,6 +6,8 @@ module Burgeon
   , templ1
   , insultTemplates
   , insultTemplate
+  , wordGroups
+  , wordGroupWords
   ) where
 
 import Aphorisms (randomFromList)
@@ -28,11 +30,12 @@ type TemplateTitle = String
 data WordGroup = WordGroup GroupTitle [String] deriving (Show)
 data TemplatePart a = Part a | Parts [TemplatePart a] deriving (Show)
 data InsultTemplate a b = InsultTemplate TemplateTitle (TemplatePart WordGroup) deriving (Show)
-data PartType = WG | TEMPL | BOOM
+data PartType = WG | TEMPL | FIXED | BOOM
 
 partType :: String -> (PartType, String)
 partType s | (s :: String) =~ ("^WG" :: String) :: Bool = (WG, drop 2 s)
            | (s :: String) =~ ("^TEMPL" :: String) :: Bool = (TEMPL, drop 5 s)
+           | (s :: String) =~ ("^FIXED" :: String) :: Bool = (FIXED, drop 5 s)
            | otherwise = (BOOM, s)
 
 initialWordGroups :: [WordGroup]
@@ -79,6 +82,16 @@ wordGroup gt = do
     Right ws <- smembers (toKey ["wordgroup", gt])
     liftIO $ return $ WordGroup gt $ map B.unpack ws
 
+wordGroupWords :: GroupTitle -> IO [String]
+wordGroupWords gt = wordGroup gt >>= (\(WordGroup _ ws) -> return ws)
+
+wordGroups :: IO [GroupTitle]
+wordGroups = do
+  conn <- checkedConnect martesConnectInfo
+  runRedis conn $ do
+    Right titles <- smembers (toKey ["wordgroups"])
+    liftIO $ return $ map B.unpack titles
+
 templatePart :: TemplateTitle -> IO (TemplatePart WordGroup)
 templatePart tTitle = do
   conn <- checkedConnect martesConnectInfo
@@ -100,3 +113,6 @@ insultTemplate tTitle = do
   tp <- templatePart tTitle
   return $ InsultTemplate tTitle tp
     
+-- newWordGroup - create new word group
+-- addWordToGroup
+

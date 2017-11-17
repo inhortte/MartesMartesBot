@@ -14,7 +14,7 @@ module Gruel
     ) where
 
 import Aphorisms (eligeSentenceFromBlog, eligeQuote, eligeQuoteByHuman)
-import Burgeon (hashUm, insultTemplates, insultTemplate, evalInsult)
+import Burgeon (hashUm, insultTemplates, insultTemplate, evalInsult, wordGroups, wordGroupWords)
 import Data.Aeson
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -34,6 +34,7 @@ import System.Environment
 import Data.Version (showVersion, makeVersion)
 import Text.Regex.Posix
 import Data.Char (isNumber)
+import Data.List (intersperse)
 import Data.List.Split (chunksOf)
 
 data Version = Version
@@ -131,18 +132,36 @@ dishITemplates :: ChatId -> Text -> Bot ()
 dishITemplates iqId args = do
   BotConfig{..} <- ask
   let args' = parseChatCommandArgs args
-  _ <- liftIO $ putStrLn $ "args: " ++ show args'
+  -- _ <- liftIO $ putStrLn $ "args: " ++ show args'
   tNames <- liftIO insultTemplates
-  _ <- liftIO $ putStrLn $ show tNames
+  -- _ <- liftIO $ putStrLn $ show tNames
   let tNames' = if null tNames then ["Nothing"] else tNames
       buttons = chunksOf 3 $ map (\tName ->
                                     InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing) tNames'
-      -- buttons = chunksOf 3 $ map (\tName -> KeyboardButton (T.pack tName) Nothing Nothing) tNames'
       keyboard = ReplyInlineKeyboardMarkup buttons
-      -- keyboard = ReplyKeyboardMarkup buttons Nothing (Just True) Nothing
-      -- inlineQueryResults = [ InlineQueryResultArticle (T.pack $ "bung") (Just $ T.pack $ "Title?") (Just $ InputTextMessageContent (T.pack "content") Nothing Nothing) (Just keyboard) Nothing Nothing (Just $ T.pack "description") Nothing Nothing Nothing ]
       request = SendMessageRequest iqId (T.pack "Click this, dead one") Nothing Nothing Nothing Nothing (Just keyboard)
       
+  res <- ($) liftIO $ sendMessage telegramToken request manager
+  _ <- liftIO $ putStrLn $ show res
+  case res of
+    Left e -> do
+      _ <- liftIO $ putStrLn $ "Error: " ++ (show e)
+      return ()
+    Right r -> do
+      _ <- liftIO $ putStrLn $ "Response: " ++ (show r)
+      return ()
+
+dishWordGroups :: ChatId -> Text -> Bot ()
+dishWordGroups chatId args = do
+  BotConfig{..} <- ask
+  let args' = parseChatCommandArgs args
+  _ <- liftIO $ putStrLn $ "dishWordGroups args: " ++ show args'
+  wgNames <- liftIO wordGroups
+  let wgNames' = if null wgNames then ["Nothing"] else wgNames
+      buttons = chunksOf 3 $ map (\wgName ->
+                                    InlineKeyboardButton (T.pack wgName) Nothing (Just $ T.pack $ "wordgroup#" ++ wgName) Nothing Nothing Nothing Nothing) wgNames'
+      keyboard = ReplyInlineKeyboardMarkup buttons
+      request = SendMessageRequest chatId (T.pack "Choose one, vole") Nothing Nothing Nothing Nothing (Just keyboard)
   res <- ($) liftIO $ sendMessage telegramToken request manager
   _ <- liftIO $ putStrLn $ show res
   case res of
@@ -186,15 +205,23 @@ handleCallbackQuery cbq = do
       chatId = ChatId $ chat_id $ chat cqMessage
       tCommand = cq_data cbq
 
+      respuesta :: ChatId -> Token -> Manager -> String -> Bot ()
+      respuesta chatId telegramToken manager details = do
+        let request = SendMessageRequest chatId (T.pack details) Nothing Nothing Nothing Nothing Nothing
+        res <- ($) liftIO $ sendMessage telegramToken request manager
+        return ()
+    
+      onCommand (T.stripPrefix "template#" -> Just tName) = do
+        insult <- liftIO $ insultTemplate (T.unpack tName) >>= evalInsult
+        respuesta chatId telegramToken manager insult
+      onCommand (T.stripPrefix "wordgroup#" -> Just wgName) = do
+        ws <- liftIO $ wordGroupWords (T.unpack wgName)
+        respuesta chatId telegramToken manager $ concat $ intersperse ", " ws
+      onCommand _ = return ()
+
   case tCommand of
-    Just s -> do
-      let tName = T.drop 9 s
-      insult <- liftIO $ insultTemplate (T.unpack tName) >>= evalInsult
-      let request = SendMessageRequest chatId (T.pack insult) Nothing Nothing Nothing Nothing Nothing
-      res <- ($) liftIO $ sendMessage telegramToken request manager
-      return ()
+    Just tc -> onCommand tc
     Nothing -> return ()
-  
 
 handleInlineQuery :: InlineQuery -> Bot ()
 handleInlineQuery iq = do
@@ -272,6 +299,8 @@ handleMessage msg = do
       onCommand (T.stripPrefix "/goat" -> Just args) = sendAphorism chatId args
       onCommand (T.stripPrefix "/its" -> Just args) = dishITemplates chatId args
       onCommand (T.stripPrefix "/itemplates" -> Just args) = dishITemplates chatId args
+      onCommand (T.stripPrefix "/wgs" -> Just args) = dishWordGroups chatId args
+      onCommand (T.stripPrefix "/wordgroups" -> Just args) = dishWordGroups chatId args
       onCommand _ = sendHelpMessage chatId
       
   liftIO $ putStrLn $ "Message id -> " ++ (show $ message_id msg)
