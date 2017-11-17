@@ -128,7 +128,7 @@ dishITemplates iqId args = do
   let args' = parseChatCommandArgs args
   -- _ <- liftIO $ putStrLn $ "args: " ++ show args'
   tNames <- liftIO insultTemplates
-  -- _ <- liftIO $ putStrLn $ show tNames
+  _ <- liftIO $ putStrLn $ "dishITemplates tNames: " ++ show tNames
   let tNames' = if null tNames then ["Nothing"] else tNames
       buttons = chunksOf 3 $ map (\tName ->
                                     InlineKeyboardButton (T.pack tName) Nothing (Just $ T.pack $ "template#" ++ tName) Nothing Nothing Nothing Nothing) tNames'
@@ -149,8 +149,8 @@ dishWordGroups :: ChatId -> Text -> Bot ()
 dishWordGroups chatId args = do
   BotConfig{..} <- ask
   let args' = parseChatCommandArgs args
-  _ <- liftIO $ putStrLn $ "dishWordGroups args: " ++ show args'
   wgNames <- liftIO wordGroups
+  _ <- liftIO $ putStrLn $ "dishWordGroups wgNames: " ++ show wgNames
   let wgNames' = if null wgNames then ["Nothing"] else wgNames
       buttons = chunksOf 3 $ map (\wgName ->
                                     InlineKeyboardButton (T.pack wgName) Nothing (Just $ T.pack $ "wordgroup#" ++ wgName) Nothing Nothing Nothing Nothing) wgNames'
