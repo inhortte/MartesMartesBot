@@ -122,12 +122,6 @@ handleChannelPost msg = do
 
   onCommand messageText
 
-helpMessage userId = sendMessageRequest userId $ T.unlines
-    [ "/help - show this message and subsequently die the flame death"
-    , "/goat - get a random aphorism taken from the GOAT LORD itself"
-    , "/its || /itemplates - show insult templates"
-    ]
-
 dishITemplates :: ChatId -> Text -> Bot ()
 dishITemplates iqId args = do
   BotConfig{..} <- ask
@@ -308,4 +302,11 @@ handleMessage msg = do
   liftIO $ putStrLn $ "Chat id -> " ++ (show $ chat_id $ chat msg)
 
   onCommand messageText
+
+helpMessage userId = sendMessageRequest userId $ T.unlines
+    [ "/help - show this message and subsequently die the flame death"
+    , "/goat - get a random aphorism taken from the GOAT LORD itself"
+    , "/its || /itemplates - show insult templates"
+    , "/wordgroups || /wgs - show word groups"
+    ]
 
